@@ -1,0 +1,35 @@
+\documentclass[border=3mm]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{calc,patterns}
+\newcommand{\wheelchart}[3]{
+    % Calculate total
+    \pgfmathsetmacro{\totalnum}{0}
+    \foreach \value/\colour in {#1} {
+        \pgfmathparse{\value+\totalnum}
+        \global\let\totalnum=\pgfmathresult
+    }
+
+    % Calculate the thickness and the middle line of the wheel
+    \pgfmathsetmacro{\wheelwidth}{(#3)-(#2)}
+    \pgfmathsetmacro{\midradius}{(#3+#2)/2}
+
+    % Rotate so we start from the top
+    \begin{scope}[rotate=90]
+    % Loop through each value set. \cumnum keeps track of where we are in the wheel
+        \pgfmathsetmacro{\cumnum}{0}
+        \foreach \value/\colour in {#1} {
+            \pgfmathsetmacro{\newcumnum}{\cumnum + \value/\totalnum*360}
+
+      % Draw the color segments.
+            \draw[fill=\colour] (-\cumnum:#2) arc (-\cumnum:-\newcumnum:#2)--(-\newcumnum:#3) arc (-\newcumnum:-\cumnum:#3)--cycle;
+
+       % Set the old cumulated angle to the new value
+            \global\let\cumnum=\newcumnum
+      }
+      \end{scope}
+}
+
+
+\begin{tikzpicture}
+
+
