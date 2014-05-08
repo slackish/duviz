@@ -16,7 +16,9 @@ http://www.tug.org/pracjourn/2007-1/mertz/mertz.pdf
 import os
 import sys
 
-THRESH=.03
+THRESH=.02
+CM_CONST=3
+
 
 class Node:
     def __init__(self, name, size=None):
@@ -45,11 +47,12 @@ def grabsize(inputfh):
 
 
 def parseline(line):
-    tmparr = line.split()
+    tmparr = line.split(None, 1)
     if len(tmparr) != 2:
-        error("%r is not valid, somehow" % line)
+        error("%r is not valid, somehow, picked up on %d splits" % (line, len(tmparr)))
         tmparr = (None, None)
     size, path = tmparr
+    path = path.strip()
     try:
         size = int(size)
     except:
@@ -80,13 +83,59 @@ def error(msg):
 
 def draw(data, size):
     print open("base_open_text").read()
-    print len(data)
+    # am I at the root?
+    if len(data) == 1 and size == data[data.keys()[0]].size:
+        root_node = data[data.keys()[0]]
+        drawroot(root_node.name, size)
+        draw_level(root_node.children, size, 1, 0)
+    else:
+        print "??"
+        print data
+        sys.exit(1)
+    print open("base_end_text").read()
 
 
-def draw_level(data, size):
-    
+def drawroot(label, size):
+    print "\draw (0,0) circle (%dcm);" % CM_CONST
+    print "\\node at (0,.25) {%s};" % (human_readable(label))
+    print "\\node at (0,-.25) {%s};" % (human_readable(size))
 
 
+
+def draw_level(data, size, level, alpha):
+    for label,node in data.items():
+        endalpha = int((float(node.size)/size)*360)
+        curdist = level * CM_CONST
+        newdist = (level+1) * CM_CONST
+        print "\\begin{scope}[rotate=%d]" % alpha
+        print "\\draw (0:%dcm) -- (0:%dcm)" % (curdist, newdist)
+        print "  arc (0:%d:%dcm) -- (%d:%dcm)" % \
+            (endalpha, newdist, endalpha, curdist)
+        print "  arc (%d:0:%dcm) -- cycle;" % (endalpha, curdist)
+        print "\\end{scope}"
+        # label
+        rotate = alpha + endalpha/2 - 90
+        print "\\begin{scope}[rotate=%d]" % rotate
+        print "\\node[rotate=%d] at (0, %f) {\\footnotesize %s};" % \
+            (rotate, curdist + float(CM_CONST)/2 + .25, escape(node.name))
+        print "\\node[rotate=%d] at (0, %f) {\\footnotesize %s};" % \
+            (rotate, curdist + float(CM_CONST)/2, human_readable(node.size))
+        print "\\end{scope}"
+        draw_level(node.children, size, level+1, alpha)
+        alpha = endalpha + alpha
+        
+
+def human_readable(size):
+    for i in ("B", "KB", "GB", "TB", "PB"):
+        if size < 1024 or i == "PB":
+            return "%3.2f %s" % (size, i)
+        size = size/1024.
+   
+
+def escape(s):
+    for character in "\\#$%^&_{}~":
+        s = s.replace(character, '\\'+character)
+    return s
 
 
 def process(data, size):
@@ -98,7 +147,6 @@ def process(data, size):
         
 
 def process_path(dict_tree, path, size):
-    
     if os.sep not in path:
         if path not in dict_tree:
             dict_tree[path] = Node(path, size)
@@ -111,18 +159,10 @@ def process_path(dict_tree, path, size):
         process_path(dict_tree[current].children, remaining, size)
 
 
-
-
-    
-
-
 def main(inputf):
     data, size = parse(inputf)
     data = process(data, size)
     draw(data, size)
-    print "hi"
-    print data
-
 
 
 if __name__ == "__main__":
