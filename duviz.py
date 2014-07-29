@@ -50,14 +50,22 @@ def parseline(line):
     tmparr = line.split(None, 1)
     if len(tmparr) != 2:
         error("%r is not valid, somehow, picked up on %d splits" % (line, len(tmparr)))
-        tmparr = (None, None)
+        return (None, None)
     size, path = tmparr
     path = path.strip()
     try:
         size = int(size)
     except:
-        #TODO: handle human readable
-        pass
+        if size.endswith("T"):
+            size = int(float(size[:-1]) * 1099511627776)
+        elif size.endswith("G"):
+            size = int(float(size[:-1]) * 1073741824)
+        elif size.endswith("M"):
+            size = int(float(size[:-1]) * 1048576)
+        elif size.endswith("K"):
+            size = int(float(size[:-1]) * 1024)
+        else:
+            return (None, None)
     return size, path
     
 
@@ -97,7 +105,7 @@ def draw(data, size):
 
 def drawroot(label, size):
     print "\draw (0,0) circle (%dcm);" % CM_CONST
-    print "\\node at (0,.25) {%s};" % (human_readable(label))
+    print "\\node at (0,.25) {%s};" % (escape(label))
     print "\\node at (0,-.25) {%s};" % (human_readable(size))
 
 
@@ -126,7 +134,7 @@ def draw_level(data, size, level, alpha):
         
 
 def human_readable(size):
-    for i in ("B", "KB", "GB", "TB", "PB"):
+    for i in ("B", "KB", "MB", "GB", "TB", "PB"):
         if size < 1024 or i == "PB":
             return "%3.2f %s" % (size, i)
         size = size/1024.
