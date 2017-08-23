@@ -92,13 +92,17 @@ def error(msg):
 def draw(data, size):
     print open("base_open_text").read()
     # am I at the root?
+    data[data.keys()[0]].size = size
     if len(data) == 1 and size == data[data.keys()[0]].size:
         root_node = data[data.keys()[0]]
         drawroot(root_node.name, size)
         draw_level(root_node.children, size, 1, 0)
     else:
-        print "??"
-        print data
+        print >> sys.stderr, "??"
+        print >> sys.stderr, data
+        print >> sys.stderr, len(data)
+        print >> sys.stderr, size
+        print >> sys.stderr, data[data.keys()[0]].size
         sys.exit(1)
     print open("base_end_text").read()
 
@@ -124,8 +128,9 @@ def draw_level(data, size, level, alpha):
         # label
         rotate = alpha + endalpha/2 - 90
         print "\\begin{scope}[rotate=%d]" % rotate
-        print "\\node[rotate=%d] at (0, %f) {\\footnotesize %s};" % \
-            (rotate, curdist + float(CM_CONST)/2 + .25, escape(node.name))
+        rotate -= 90
+        print "\\node[rotate=%d] at (.25, %f) {\\footnotesize %s};" % \
+            (rotate, curdist + float(CM_CONST)/2, escape(node.name))
         print "\\node[rotate=%d] at (0, %f) {\\footnotesize %s};" % \
             (rotate, curdist + float(CM_CONST)/2, human_readable(node.size))
         print "\\end{scope}"
@@ -134,7 +139,7 @@ def draw_level(data, size, level, alpha):
         
 
 def human_readable(size):
-    for i in ("B", "KB", "MB", "GB", "TB", "PB"):
+    for i in ("KB", "MB", "GB", "TB", "PB"):
         if size < 1024 or i == "PB":
             return "%3.2f %s" % (size, i)
         size = size/1024.
@@ -174,6 +179,10 @@ def main(inputf):
 
 
 if __name__ == "__main__":
-    main(sys.argv[-1]) # simple hack for now
-
-
+    import argparse
+    parser = argparse.ArgumentParser(description = \
+                    'Generate a tex drawing based on du output')
+    parser.add_argument('inputf', metavar='inputf', type=str,
+                        help='du output file')
+    args = parser.parse_args()
+    main(args.inputf)
